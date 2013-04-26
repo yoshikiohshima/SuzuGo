@@ -1,0 +1,79 @@
+ometa SGFParser <: Parser {
+    cRange :x :y = char:c ?(c >= x)
+                          ?(c <= y) -> c,
+    color = "B" | "W",
+    move = point,
+    stone = point,
+    number = (empty -> new StringBuffer()):strm
+            (("+" | "-"):s -> strm.nextPutAll(s) | empty)
+            (digit:d -> strm.nextPutAll(d))+
+            -> parseInt(strm.contents(), 10),
+    backslash = char:c ?(c.charCodeAt(0) == 92) -> c,
+    escapedChar = backslash
+                  char:c -> (c == String.fromCharCode(10) || c == String.fromCharCode(13) ? "" : c),
+    escapedBracket = backslash (']' -> ']' | char:c -> String.fromCharCode(92, c.charCodeAt(0))),
+    point = 'tt'                       -> [0, 0]
+          | (cRange("a", "z") | cRange("A", "Z")):a
+            (cRange("a", "z") | cRange("A", "Z")):b
+               -> [a.toLowerCase().charCodeAt(0) - "a".charCodeAt(0),
+                   b.toLowerCase().charCodeAt(0) - "a".charCodeAt(0)],
+    real = (empty -> new StringBuffer()):strm
+            (("+" | "-"):s -> strm.nextPutAll(s) | empty)
+            (digit:d -> strm.nextPutAll(d))+
+            ('.' -> strm.nextPutAll("."))
+            (digit:d -> strm.nextPutAll(d))+
+            -> parseFloat(strm.contents(), 10),
+    noConvert :c = empty -> c,
+    convertSpace :c = empty -> (c == "" ? "" : (c < " " ? " " : c)),
+    convertSpaceNoNewLine :c = empty -> (c == "" ? "" : (c < " " && c != String.fromCharCode(10) && c != String.fromCharCode(13) ? " " : c)),
+    baseText :escaper :converter :condition = 
+        (empty -> new StringBuffer()):strm
+        (  _apply(escaper):c      _applyWithArgs(converter, c):c  -> strm.nextPutAll(c)
+         | char:c ?(condition(c)) _applyWithArgs(converter, c):c  -> strm.nextPutAll(c))*
+        -> strm.contents(),
+    text = baseText("escapedChar", "convertSpaceNoNewLine", function(c) {return c != "]"}),
+    simpletext = baseText("escapedChar", "convertSpace", function(c) {return c != "]"}),
+    simpletextNoColon = baseText("escapedChar", "convertSpace", function(c) {return c != "]" && c != ":"}),
+    qString = baseText("escapedBracket", "noConvert", function(c) {return c != "]"}),
+
+   composed :a :b =
+         _apply(a):c ':' _apply(b):d -> ([#composed, c, d]),
+   numberOrComposedNum =
+    composed("number", "number") | number,
+   pointOrComposedPoint =
+     composed("point", "point") | point,
+
+   parseValue :id =
+    (empty -> this.types[id]):type
+	(
+	  ?(["move", "stone", "point", "real", "number", "color", "double", "text", "simpletext"].grep(type).length > 0)
+			"[" _apply(type):v "]" -> v
+	| ?(["list of stone", "list of point", "elist of point"].grep(type).length > 0)
+			("[" _apply("pointOrComposedPoint"):v "]" -> v)+:vs -> ["list"].concat(vs)
+	| ?(["AR", "LN"].grep(id).length > 0)
+	    ("[" _applyWithArgs("composed", "point", "point"):v "]" -> v)+:vs
+				-> ["list"].concat(vs)
+	| ?(id == "FG")
+	    ("[" qString:v "]" -> v)+:vs -> ["list"].concat(vs)
+	| ?(id == "SZ")
+	    "[" numberOrComposedNum:v "]" -> v
+	| ?(["FF", "GM", "ST"].grep(id).length > 0)
+	    "[" number:v "]" -> [v]
+	| ?(id == "AP")
+	    "[" _apply("composed", "simpletextNoColon", "simpletext"):v "]" -> v
+	| ?(id == "LB")
+	    ("[" _applyWithArgs("composed", "point", "simpletext"):v "]" -> v)+:vs 
+	      -> ["list"].concat(vs)
+	| ?(type == "none")
+	   "[" "]" -> []
+	| (empty -> alert("unknown property"))
+	    ("[" qString:v "]" -> v)+:vs -> ["list"].concat(vs)
+	),
+
+   sequence = node+,
+   node = ";" property*:s -> [#node].concat(s),
+   property = propID:id parseValue(id):v -> [#prop, id, v],
+   propID = spaces (upper:c -> c | letter -> "")+:s -> s.join(""),
+   gameTree = "(" sequence:s gameTree*:t ")" spaces -> ["gameTree"].concat(s).concat(t),
+   collection = gameTree+
+}
