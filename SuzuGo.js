@@ -46,6 +46,12 @@ lively.morphic.Image.subclass('users.ohshima.suzugo.SuzuGo.SuzuGoBoard',
         this.setImageURL('http://localhost:9001/users/ohshima/suzugo/' + file)
         this.board = new users.ohshima.suzugo.SuzuGoPlayer.GoBoard(aSize)
         this.initPieces()
+        this.initMoveMarkers()
+    },
+    initMoveMarkers: function() {
+        var sample = this.pieces[this.board.getPos(0, 0)]
+        this.lastMoveMarker = lively.morphic.Morph.makeCircle(pt(0, 0), sample.bounds().extent().scaleBy(0.25), 0, Color.black, Color.red)
+        this.koMarker = lively.morphic.Morph.makeCircle(pt(0, 0), sample.bounds().extent().scaleBy(0.25), 0, Color.black, Color.red)
     },
     initPieces: function() {
         this.removeAllMorphs()
@@ -113,13 +119,23 @@ lively.morphic.Image.subclass('users.ohshima.suzugo.SuzuGo.SuzuGoBoard',
             var side = move[1] == "B" ? 1 : 2
             var pos = this.board.getPos(move[2][0], move[2][1])
             console.log(move)
-            this.board.atPut(pos, side)
+            this.board.play(pos, side)
             this.updatePieces(this.board)
             this.current = move
+            this.showLastMove(pos)
+            this.maybeShowKo(this.board)
         } else {
             this.stopStepping()
         }
+    },
+    showLastMove: function(pos) {
+        this.addMorphFront(this.lastMoveMarker)
+        this.lastMoveMarker.centerAt(pieces[pos].bounds().center())
+    },
+    maybeShowKo: function(pos) {
+        
     }
+
 },
 'workers', {
     initWorkers: function(count) {

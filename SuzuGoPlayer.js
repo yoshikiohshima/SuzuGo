@@ -85,6 +85,12 @@ Object.subclass('users.ohshima.suzugo.SuzuGoPlayer.DameCounter',
                 this.stonesMap[p] = this.stones
             }
         }
+    },
+    lastGroupDo: function(aFunction) {
+        for (var i = 0; i <= this.groupP; i++) {
+            var p = this.group[i]
+            aFunction(p)
+        }
     }
 },
 'debugging', {
@@ -117,7 +123,7 @@ Object.subclass('users.ohshima.suzugo.SuzuGoPlayer.GoBoard',
         this.board = new Int8Array(this.stride * this.stride)
         this.resetOob(this)
         this.dameCounter = new users.ohshima.suzugo.SuzuGoPlayer.DameCounter(this)
-
+        this.captures = [undefined, 0, 0]
         this.turn = 0
         this.candidates = []
     },
@@ -144,13 +150,14 @@ Object.subclass('users.ohshima.suzugo.SuzuGoPlayer.GoBoard',
             this.dameCounter.reset()
         }
         var func = function(p) {
-            if (this.at(p) == this.opponentOf(obj) && this.dameCounter.dameAt(p) === 0) {
+            if (this.at(p) == this.opponentOf(side) && this.dameCounter.dameAt(p) === 0) {
                 this.dameCounter.lastGroupDo(function(sPos) {
                     this.captures[side]++
                     this.atPut(sPos, 0)
                 }.bind(this))
             }
-        }
+        }.bind(this)
+        this.fourNeighborsDo(this, ind, func)
     },
     size: function() {
         return this.board.length
@@ -160,14 +167,6 @@ Object.subclass('users.ohshima.suzugo.SuzuGoPlayer.GoBoard',
     },
     opponentOf: function(color) {
         return 3 - color
-    },
-    captureAt: function(pos, side) {
-        var func = function(p) {
-            if (this.at(p) == this.opponentOf(side) && this.dameCounter.dameAt(p) == 0) {
-                
-            }
-        }
-          
     },
     fourNeighborsDo: function(aBoard, pos, aFunc) {
         aFunc(pos - this.stride)
