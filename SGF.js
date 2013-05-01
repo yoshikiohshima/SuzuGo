@@ -135,7 +135,58 @@ Object.subclass('users.ohshima.suzugo.SGF.Reader',
 Object.subclass('users.ohshima.suzugo.SGF.Data',
 'initialization', {
     initialize: function($super, aTree) {
+        this.moveProperties = {B: 1, KO: 1, MN: 1, W: 1}
+        this.gameInfoProperties = {AN: 1, BR: 1, BT: 1, CP: 1, DT: 1, EV: 1,
+                GN: 1, GC: 1, ON: 1, OT: 1, PB: 1, PC: 1, PW: 1, RE: 1, RO: 1,
+                RU: 1, SO: 1, TM: 1, US: 1, WR: 1, WT: 1}
+        this.setupProperties = {AB: 1, AE: 1, AW: 1, PL: 1}
+        this.nodeAnnotationProperties = {C: 1, DM: 1, GB: 1, GW: 1, HO: 1,
+            N: 1, UC: 1, V: 1}
+        this.moveAnnotationProperties = {BM: 1, DO: 1, IT: 1, TE: 1}
+        this.markupProperties = {AR: 1, CR: 1, DD: 1, LB: 1, LN: 1, MA: 1,
+            SL: 1, SQ: 1, TR: 1}
+        this.timingProperties = {BL: 1, OB: 1, OW: 1, WL: 1}
+        this.rootProperties = {AP: 1, CA: 1, FF: 1, GM: 1, ST: 1, SZ: 1}
+        this.miscellaneousProperties = {FG: 1, PM: 1, VW: 1}
+
         this.tree = aTree
+        this.rootProp = {};
+        ([].concat(aTree[1])).splice(1).forEach(function(ary) {
+            this.rootProp[ary[1]] = ary[2]}, this)
+    },
+},
+'accessing', {
+    getProperty: function(prop) {
+        return this.rootProp[prop]
+    }
+},
+'playing', {
+    isMoveProperty: function(prop) {
+        return prop[0] == "prop" && (prop[1] in this.moveProperties)
+    },
+    findNextMoveInner: function(aTree, element) {
+        if ((this.foundLast || element === null) && this.isMoveProperty(aTree)) {
+            throw {type: "found", value: aTree}
+        }
+        if (aTree === element) {
+            this.foundLast = true
+        }
+        if (aTree.constructor === Array) {
+            aTree.forEach(function(tt) {
+                this.findNextMoveInner(tt, element)
+            }, this)
+        }
+    },
+    findNextMove: function(element) {
+        this.foundLast = false
+        try {
+            this.findNextMoveInner(this.tree, element)
+        } catch(c) {
+            if (c.type == "found") {
+                return c.value
+            }
+        }
+    return null
     }
 })
 

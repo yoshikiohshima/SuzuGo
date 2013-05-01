@@ -8,6 +8,7 @@ TestCase.subclass('users.ohshima.suzugo.SGFParserTests.Tests',
 
         this.assertEquals(SGFParser.matchAll("JA", "move")[0], 9)
         this.assertEquals(SGFParser.matchAll("64", "number"), 64)
+        this.assertEquals(SGFParser.matchAll("64.625", "real"), 64.625)
 
         this.assertEquals(SGFParser.matchAll("\\\\", "escapedChar").length, 1)
         this.assertEquals(SGFParser.matchAll("\\\n", "escapedChar"), "")

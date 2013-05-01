@@ -4,10 +4,7 @@ ometa SGFParser <: Parser {
     color = "B" | "W",
     move = point,
     stone = point,
-    number = (empty -> new StringBuffer()):strm
-            (("+" | "-"):s -> strm.nextPutAll(s) | empty)
-            (digit:d -> strm.nextPutAll(d))+
-            -> parseInt(strm.contents(), 10),
+    number = < ("+" | "-")? digit+ >:s -> parseInt(s, 10),
     backslash = char:c ?(c.charCodeAt(0) == 92) -> c,
     escapedChar = backslash
                   char:c -> (c == String.fromCharCode(10) || c == String.fromCharCode(13) ? "" : c),
@@ -17,12 +14,7 @@ ometa SGFParser <: Parser {
             (cRange("a", "z") | cRange("A", "Z")):b
                -> [a.toLowerCase().charCodeAt(0) - "a".charCodeAt(0),
                    b.toLowerCase().charCodeAt(0) - "a".charCodeAt(0)],
-    real = (empty -> new StringBuffer()):strm
-            (("+" | "-"):s -> strm.nextPutAll(s) | empty)
-            (digit:d -> strm.nextPutAll(d))+
-            ('.' -> strm.nextPutAll("."))
-            (digit:d -> strm.nextPutAll(d))+
-            -> parseFloat(strm.contents(), 10),
+    real = < number '.' digit+ >:s -> parseFloat(s),
     noConvert :c = empty -> c,
     convertSpace :c = empty -> (c == "" ? "" : (c < " " ? " " : c)),
     convertSpaceNoNewLine :c = empty -> (c == "" ? "" : (c < " " && c != String.fromCharCode(10) && c != String.fromCharCode(13) ? " " : c)),
@@ -66,7 +58,7 @@ ometa SGFParser <: Parser {
 	      -> ["list"].concat(vs)
 	| ?(type == "none")
 	   "[" "]" -> []
-	| (empty -> alert("unknown property"))
+	| (empty -> (function() {debugger; alert("unknown property")})())
 	    ("[" qString:v "]" -> v)+:vs -> ["list"].concat(vs)
 	),
 
