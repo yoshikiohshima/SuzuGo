@@ -37,8 +37,10 @@ ometa SGFParser <: Parser {
 
    parseValue :id =
     (empty -> this.types[id]):type
-	(
-	  ?(["move", "stone", "point", "real", "number", "color", "double", "text", "simpletext"].grep(type).length > 0)
+ 	(
+      ?(type === undefined)
+        ("[" qString:v "]" -> v)+:vs -> ["list"].concat(vs)
+	| ?(["move", "stone", "point", "real", "number", "color", "double", "text", "simpletext"].grep(type).length > 0)
 			"[" _apply(type):v "]" -> v
 	| ?(["list of stone", "list of point", "elist of point"].grep(type).length > 0)
 			("[" _apply("pointOrComposedPoint"):v "]" -> v)+:vs -> ["list"].concat(vs)
@@ -52,14 +54,12 @@ ometa SGFParser <: Parser {
 	| ?(["FF", "GM", "ST"].grep(id).length > 0)
 	    "[" number:v "]" -> [v]
 	| ?(id == "AP")
-	    "[" _apply("composed", "simpletextNoColon", "simpletext"):v "]" -> v
+	    "[" _apply("composed", "simpletextNoColon", "simpletext"):v  "]" -> v
 	| ?(id == "LB")
 	    ("[" _applyWithArgs("composed", "point", "simpletext"):v "]" -> v)+:vs 
 	      -> ["list"].concat(vs)
 	| ?(type == "none")
 	   "[" "]" -> []
-	| (empty -> (function() {debugger; alert("unknown property")})())
-	    ("[" qString:v "]" -> v)+:vs -> ["list"].concat(vs)
 	),
 
    sequence = node+,

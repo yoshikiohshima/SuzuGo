@@ -127,9 +127,21 @@ Object.subclass('users.ohshima.suzugo.SGF.Reader',
 ";W[sg];B[es];W[is];B[jr];W[ds];B[od];W[rg];B[es];W[al];B[ao];W[ds]",
 ";B[cr];W[dc];B[db];W[ac];B[ab];W[cc];B[bb];W[ei];B[he];W[es])"].join("\n"),
 
+    exampleSGF9: ["(;AP[MultiGo:4.2.1]SZ[9]GN[リコー杯プロ棋士ペア碁選手権2006]EV[準々決勝進出決定戦（９路盤対局）]", 
+"DT[2005/12/03]PC[東京「恵比寿ザ・ガーデンホール」]PB[小山栄美女流名人・王 立誠九段]",
+"PW[青木喜久代八段・三村智保九段]KM[6.5]RE[B+R]MULTIGOGM[1]",
+";B[fe];W[df];B[de];W[ce];B[dd];W[ef];B[ff];W[gc];B[cf];W[cg];B[bf];W[bg];B[be];W[fg]",
+";B[gg];W[eh];B[fh];W[eg];B[gd];W[fc];B[eb];W[hd];B[he];W[fd];B[ee];W[ge];B[hf];W[fb]",
+";B[hb];W[db];B[ec];W[dc];B[ed];W[bc];B[cb];W[cc];B[da])"
+].join("\n"),
+
     example1: function() {
         return SGFParser.matchAll(this.exampleSGF, "collection")
+    },
+    example9: function() {
+        return SGFParser.matchAll(this.exampleSGF9, "collection")
     }
+
 });
 
 Object.subclass('users.ohshima.suzugo.SGF.Data',

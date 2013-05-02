@@ -58,7 +58,33 @@ TestCase.subclass('users.ohshima.suzugo.SuzuGoTests.BoardTests', {
         // They have two liberties
         this.assertEquals(board.dameCounter.dameAt(morph.board.getPos(9, 0)), 2)
         this.assertEquals(board.dameCounter.dameAt(morph.board.getPos(10, 0)), 2)  
+    },
+    testCheckMoves: function() {
+        var morph = new users.ohshima.suzugo.SuzuGo.SuzuGoBoard()
+        var tree = new users.ohshima.suzugo.SGF.Reader().example9()
+        var sgf = new users.ohshima.suzugo.SGF.Data(tree[0])
+        morph.setPlaybackFor(sgf)
+        var board = morph.board
+        for (var i = 0; i < 33; i++) {
+            morph.playbackNext()
+        }
+        // morph.board should look like at this point:
+        // ┌┬┬┬┬┬┬┬┐
+        // ├┼┼○●○┼●┤
+        // ├┼┼○●○○┼┤
+        // ├┼┼●●○┼○┤
+        // ├●○●●●○●┤
+        // ├●●○○●┼●┤
+        // ├○○┼○○●┼┤
+        // ├┼┼┼○●┼┼┤
+        // └┴┴┴┴┴┴┴┘
+
+        // Black cannot play in the white eye
+        this.assert(!board.checkMove(morph.board.getPos(6, 3), 1))
+        // White can play in the white eye
+        this.assertEquals(board.dameCounter.dameAt(morph.board.getPos(15, 12)), 4)
     }
+
 })
 
 }) // end of module
