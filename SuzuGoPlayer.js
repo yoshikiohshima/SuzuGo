@@ -127,15 +127,26 @@ Object.subclass('users.ohshima.suzugo.SuzuGoPlayer.GoBoard',
         this.ko = 0;
         this.prevMove = 0;
     },
-
     reset: function() {
         for (var i = 0; i < this.board.length; i++) {
             this.board[i] = 0;
         }
+        this.resetOob()
         if (this.dameCounter) {
             this.dameCounter.reset();
         }
-    }
+    },
+    copyFrom: function(other) {
+        for (var i = 0; i < this.board.length; i++) {
+            this.board[i] = other.board[i]
+        }
+        this.dameCounter.reset()
+        this.captures[1] = this.captures[2] = 0
+        this.turn = other.turn
+        this.ko = other.ko
+        this.prevMove = other.prevMove
+        this.done = other.done
+    },
 },
 'accessing', {
     at: function(ind) {
@@ -145,36 +156,39 @@ Object.subclass('users.ohshima.suzugo.SuzuGoPlayer.GoBoard',
         this.board[ind] = obj;
     },
     nextTurn: function() {
-        return this.turn === 0 ? (this.turn = 1) : (this.turn = this.opponentOf(this.turn));
+        this.turn === 0 ? (this.turn = 1) : (this.turn = this.opponentOf(this.turn));
+        return this.turn
+    },
+    size: function() {
+        return this.board.length;
+    },
+    getPos: function(x, y) {
+        return (y + 1) * this.stride + x + 1;
+    },
+    opponentOf: function(color) {
+        return 3 - color;
     }
 },
 'enumaration', {
+    allPointsDo: function(func) {
+        for (var y = 0; y < this.boardSize; y++) {
+            for (var x = 0; x < this.boardSize; x++) {
+                func(this.getPos(x, y))
+            }
+        }
+    },        
     allEmptyPointsDo: function(func) {
         for (var y = 0; y < this.boardSize; y++) {
             for (var x = 0; x < this.boardSize; x++) {
-                if (this.at(pos = this.getPos(x, y)) === 0) {
+                var pos = this.getPos(x, y)
+                if (this.at(pos) == 0) {
                     func(pos)
                 }
             }
         }
-    }
+    },
 },
 'playing', {
-    play: function(ind, side) {
-        this.atPut(ind, side);
-        if (this.dameCounter) {
-            this.dameCounter.reset();
-        }
-        var func = function(p) {
-            if (this.at(p) == this.opponentOf(side) && this.dameCounter.dameAt(p) === 0) {
-                this.dameCounter.lastGroupDo(function(sPos) {
-                    this.captures[side]++;
-                    this.atPut(sPos, 0);
-                }.bind(this));
-            }
-        }.bind(this);
-        this.fourNeighborsDo(this, ind, func);
-    },
     mayPlay: function(ind, side) {
         if (ind === null) {
             this.done = true;
@@ -190,20 +204,31 @@ Object.subclass('users.ohshima.suzugo.SuzuGoPlayer.GoBoard',
         }
         var maybeKo = 0;
         var opponent = this.opponentOf(side);
+        this.dameCounter.reset()
+        var totalCapture = 0
         this.fourNeighborsDo(this, ind, function(p) {
             var c = this.at(p);
             var dame = this.dameCounter.dameAt(p);
             if (dame == 1 && c == opponent) {
                 maybeKo = p;
-                this.capture(p, c);
+                // the following is optimization; doing  reset() and doing dameAt() above
+                // will do the full search so the group array in dameCounter holds
+                // the stones affected.
+                this.dameCounter.lastGroupDo(function(sPos) {
+                    totalCapture++
+                    this.captures[side]++;
+                    this.atPut(sPos, 0);
+                }.bind(this))
             }
         }.bind(this));
         this.atPut(ind, side);
+        this.dameCounter.reset()
         this.prevMove = ind;
-        this.lastTurn = side;
-        
-        this.dameCounter.countDameAt();
-        if (this.dameCounter.stonesAt(ind) == 1 && this.dameCounter.dameAt(ind) == 1) {
+
+        this.dameCounter.countDameAt(ind);
+        if (this.dameCounter.stonesAt(ind) == 1
+                && this.dameCounter.dameAt(ind) == 1
+                && totalCapture == 1) {
             this.ko = maybeKo;
         } else {
             this.ko = 0;
@@ -240,31 +265,37 @@ Object.subclass('users.ohshima.suzugo.SuzuGoPlayer.GoBoard',
                 if (c == opponent && dame == 1) {
                     fourNeighbors.capturable += this.dameCounter.stonesAt(p);
                 }
-                if (c == side && this.dameAt(p) >= 2) {
+                if (c == side && this.dameCounter.dameAt(p) >= 2) {
                     fourNeighbors.safeStones++;
                 }
             }
         }.bind(this));
         return fourNeighbors;
     },
-    playout: function(aBoard) {
+    playout: function(aBoard, side) {
         var limit = aBoard.boardSize * aBoard.boardSize + 100;
-        candidates = [];
+        this.turn = this.opponentOf(side)
         for (var i = 0; i < limit; i++) {
             var side = this.nextTurn();
-            var pos = this.nextRandomMove(aBoard, candidates);
+            var pos = this.nextRandomMove(aBoard, side);
             aBoard.mayPlay(pos, side);
             if (aBoard.done) {
                 return;
             }
         }
     },
-    nextRandomMove: function(aBoard, candidates) {
-        candidates.length = 0;
+    possibleMoves: function(aBoard, side) {
+        var candidates = []
         aBoard.allEmptyPointsDo(function(pos) {
-            candidates.push(pos);
+            if (aBoard.checkMove(pos, side)) {
+                candidates.push(pos);
+            }
         });
-        return this.findAMoveInPlayout(aBoard.nextTurn(), aBoard, candidates);
+        return candidates
+    },
+    nextRandomMove: function(aBoard, side) {
+        var candidates = this.possibleMoves(aBoard, side)
+        return this.findAMoveInPlayout(side, aBoard, candidates);
     },
     findAMoveInPlayout: function(side, aBoard, candidates) {
         while (true) {
@@ -272,46 +303,53 @@ Object.subclass('users.ohshima.suzugo.SuzuGoPlayer.GoBoard',
                 return 0;
             }
             var rand = Math.floor(Math.random() * candidates.length);
-            var move = candidates[rand];
-            var result = aBoard.checkMoveAt(pos, side);
+            var pos = candidates[rand];
+            var result = aBoard.checkMove(pos, side);
             if (result) {
-                return move;
+                return pos;
             }
+            console.log("should not happen?")
             var last = candidates.pop()
             if (rand < candidates.length - 1) {
                 candidates[rand] = last
             }
         }
     },
-    selectBestMove: function(aBoard, mSecs) {
-        var side = aBoard.nextTurn();
+    selectBestMove: function(aBoard, side, mSecs) {
         var playBoard = new this.constructor(this.boardSize);
-        var playBoard2 = new this.constructor(this.boardSize);
         var points = [];
-        var start = Date.now();
+        var playoutStart = Date.now();
         var playouts = 0;
-        var i
+        var i;
         aBoard.allEmptyPointsDo(function(p) {
-            playBoard.copyFrom(aBoard);
-            if (playBoard.checkMove(pos, side)) {
+            if (aBoard.checkMove(p, side)) {
                 points.push(p);
             }
         });
-        var scores = new Int32Array(points.length);
+        var scores = new Array(points.length);
+        for (i = 0; i < points.length; i++) {
+            scores[i] = 0
+        }
         var more = true;
+        var r = 0
         while (more) {
-            for (var t = 0; t < 10; t++) {
-                for (i = 0; i < points.length; i++) {
-                    var pos = points[i];
+            r++
+            console.log(r)
+            for (var t = 0; t < 1; t++) {
+                for (ii = 0; ii < points.length; ii++) {
+                    var pos = points[ii];
                     playBoard.copyFrom(aBoard);
-                    playBoard.playAt(pos, side);
+                    playBoard.mayPlay(pos, side);
+                    playBoard.playout(playBoard, this.opponentOf(side));
                     playouts++;
+                    //console.log(playBoard.toString())
                     var win = playBoard.countScore(side, 6.5);
-                    scores[i] += win;
+                    scores[ii] += win;
                 }
             }
-            move = Date.now() - start < mSecs;
+            more = (Date.now() - playoutStart) < mSecs;
         }
+        console.log(scores)
         var best = 0;
         var bestScore = -100;
         for (i = 0; i < points.length; i++) {
@@ -320,16 +358,36 @@ Object.subclass('users.ohshima.suzugo.SuzuGoPlayer.GoBoard',
                 best = points[i];
             }
         }
-        return best;
+        return [best, playouts];
     },
-    size: function() {
-        return this.board.length;
-    },
-    getPos: function(x, y) {
-        return (y + 1) * this.stride + x + 1;
-    },
-    opponentOf: function(color) {
-        return 3 - color;
+    countScore: function(side, komi) {
+        var score = 0;
+        var kinds = [0, 0];
+        var n = [0, 0];
+        this.allPointsDo(function(pos) {
+            var c = this.at(pos);
+            if (c !== 0) {
+                kinds[c-1]++;
+            }
+            if (c == 0) {
+                n[0] = n[1] = 0;
+                this.fourNeighborsDo(this, pos, function(p) {
+                    var c = this.at(p);
+                    if (c !== 0) {
+                        n[c-1]++;
+                    }
+                }.bind(this));
+                if (n[0] > 0 && n[1] == 0) {
+                    score++;
+                }
+                if (n[1] > 0 && n[0] == 0) {
+                    score--;
+                }
+            }
+        }.bind(this))
+        //return [score, kinds[0], kinds[1]]
+        score = score + kinds[0] - kinds[1] - komi
+        return side == 2 ? (score < 0 ? 1 : -1) : (score > 0 ? 1 : -1)
     },
     fourNeighborsDo: function(aBoard, pos, aFunc) {
         aFunc(pos - this.stride);

@@ -32,7 +32,9 @@ lively.morphic.Image.subclass('users.ohshima.suzugo.SuzuGo.SuzuGoBoard',
     initialize: function($super) {
         $super(pt(0, 0).extent(pt(100, 100)), undefined, true)
     },
-    initBoard: function(aSize) {
+    setBoard: function(aBoard) {
+        this.board = aBoard
+        var aSize = aBoard.boardSize
         var file = aSize == 9
                     ? 'Goban_9x9_vide.png'
                     : (aSize == 13
@@ -44,9 +46,11 @@ lively.morphic.Image.subclass('users.ohshima.suzugo.SuzuGo.SuzuGoBoard',
         this.boardSize = aSize == 9 ? 9 : (aSize == 13 ? 13 : 19)
         this.setExtent(ext)
         this.setImageURL('http://localhost:9001/users/ohshima/suzugo/' + file)
-        this.board = new users.ohshima.suzugo.SuzuGoPlayer.GoBoard(aSize)
         this.initPieces()
         this.initMoveMarkers()
+    },
+    initBoard: function(aSize) {
+        this.setBoard(new users.ohshima.suzugo.SuzuGoPlayer.GoBoard(aSize))
     },
     initMoveMarkers: function() {
         var sample = this.pieces[this.board.getPos(0, 0)]
@@ -118,25 +122,42 @@ lively.morphic.Image.subclass('users.ohshima.suzugo.SuzuGo.SuzuGoBoard',
         if (move) {
             var side = move[1] == "B" ? 1 : 2
             var pos = this.board.getPos(move[2][0], move[2][1])
-            console.log(move)
-            this.board.play(pos, side)
+            this.board.mayPlay(pos, side)
             this.updatePieces(this.board)
             this.current = move
             this.showLastMove(pos)
-            this.showKo(this.board)
+            this.showKo(this.board.ko)
         } else {
             this.stopStepping()
         }
     },
+    playNext: function() {
+        var turn = this.board.nextTurn()
+        var move = this.board.selectBestMove(this.board, turn, 1000)
+        this.board.mayPlay(move[0], turn)
+        this.updatePieces(this.board)
+        this.showLastMove(move[0])
+        this.showKo(this.board.ko)        
+    },
+    play: function() {
+        this.startStepping(1000, 'playNext')
+    },
+
     showLastMove: function(pos) {
-        this.addMorphFront(this.lastMoveMarker)
-        this.lastMoveMarker.setPosition(this.pieces[pos].getPosition())
+        if (pos !== 0) {
+            this.addMorphFront(this.lastMoveMarker)
+            this.lastMoveMarker.setPosition(this.pieces[pos].getPosition())
+        } else {
+            this.lastMoveMarker.remove()
+        }
     },
     showKo: function(pos) {
-        var ko = this.board.ko()
-        if (ko !== null) {
-            this.koMarker.setPosition(this.pieces[ko].getPosition())
-        }  
+        if (pos !== 0) {
+            this.addMorphFront(this.koMarker)
+            this.koMarker.setPosition(this.pieces[pos].getPosition())
+        } else {
+            this.koMarker.remove()
+        }
     }
 
 },
