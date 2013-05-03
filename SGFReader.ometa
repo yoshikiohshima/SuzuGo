@@ -40,18 +40,18 @@ ometa SGFParser <: Parser {
  	(
       ?(type === undefined)
         ("[" qString:v "]" -> v)+:vs -> ["list"].concat(vs)
-	| ?(["move", "stone", "point", "real", "number", "color", "double", "text", "simpletext"].grep(type).length > 0)
+	| ?(["move", "stone", "point", "real", "number", "color", "double", "text", "simpletext"].indexOf(type) > -1)
 			"[" _apply(type):v "]" -> v
-	| ?(["list of stone", "list of point", "elist of point"].grep(type).length > 0)
+	| ?(["list of stone", "list of point", "elist of point"].indexOf(type) > -1)
 			("[" _apply("pointOrComposedPoint"):v "]" -> v)+:vs -> ["list"].concat(vs)
-	| ?(["AR", "LN"].grep(id).length > 0)
+	| ?(["AR", "LN"].indexOf(id) > -1)
 	    ("[" _applyWithArgs("composed", "point", "point"):v "]" -> v)+:vs
 				-> ["list"].concat(vs)
 	| ?(id == "FG")
 	    ("[" qString:v "]" -> v)+:vs -> ["list"].concat(vs)
 	| ?(id == "SZ")
 	    "[" numberOrComposedNum:v "]" -> v
-	| ?(["FF", "GM", "ST"].grep(id).length > 0)
+	| ?(["FF", "GM", "ST"].indexOf(id) > -1)
 	    "[" number:v "]" -> [v]
 	| ?(id == "AP")
 	    "[" _apply("composed", "simpletextNoColon", "simpletext"):v  "]" -> v
