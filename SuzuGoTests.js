@@ -52,7 +52,6 @@ TestCase.subclass('users.ohshima.suzugo.SuzuGoTests.BoardTests', {
         // ├┼●○┼┼┼┼┼┼┼○●○●●┼┼┤
         // ├┼┼●○┼┼┼┼┼┼┼●●┼┼┼┼┤
         // └┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┴┘
-
         // There are four liberties around the white group of three at right
         this.assertEquals(board.dameCounter.dameAt(morph.board.getPos(15, 11)), 4);
         this.assertEquals(board.dameCounter.dameAt(morph.board.getPos(15, 12)), 4);
@@ -88,7 +87,6 @@ TestCase.subclass('users.ohshima.suzugo.SuzuGoTests.BoardTests', {
         // ├○○┼○○●┼┤
         // ├┼┼┼○●┼┼┤
         // └┴┴┴┴┴┴┴┘
-
         // Black cannot play in the white eye
         this.assert(!board.checkMove(morph.board.getPos(6, 3), 1));
         // White can play in the white eye but for playout, it should not do that
@@ -141,8 +139,9 @@ TestCase.subclass('users.ohshima.suzugo.SuzuGoTests.BoardTests', {
         // ├┼┼┼○●┼┼┤
         // └┴┴┴┴┴┴┴┘
         var candidates = [];
-        board.possibleMoves(board, 1, candidates);
-        this.assertEquals(candidates.length, 48);
+        board.possibleMoves(1, candidates);
+        // not the precise count of possible moves, but just counting all empty points
+        this.assertEquals(candidates.length, 49);
     }
 });
 

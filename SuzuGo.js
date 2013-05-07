@@ -56,6 +56,7 @@ lively.morphic.Image.subclass('users.ohshima.suzugo.SuzuGo.SuzuGoBoard',
         for (var y = 0; y < this.boardSize; y++) {
             for (var x = 0; x < this.boardSize; x++) {
                 var piece = new users.ohshima.suzugo.SuzuGo.SuzuGoPiece(pt(dict.size, dict.size), (y+1)*(this.boardSize+2)+x+1);
+                piece.disableGrabbing()
                 this.addMorph(piece);
                 piece.setPosition(pt(dict.steps * x + dict.margin, dict.steps * y + dict.margin));
                 piece.setType(0);
@@ -110,7 +111,7 @@ lively.morphic.Image.subclass('users.ohshima.suzugo.SuzuGo.SuzuGoBoard',
     },
     playNext: function() {
         var turn = this.board.nextTurn();
-        var move = this.board.selectBestMove(this.board, turn, 5000);
+        var move = this.board.selectBestMove(turn, 5000);
         this.board.play(move[0], turn);
         this.updatePieces(this.board);
         this.showLastMove(move[0]);
